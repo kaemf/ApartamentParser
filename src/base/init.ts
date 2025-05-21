@@ -59,12 +59,19 @@ export default async function init() {
     await next();
   })
 
+  const RedisDataBaseName = process.env.REDIS_DATABASE_NAME;
+
+  if (!RedisDataBaseName) {
+    console.error('DataBase name for Redis not defined.');
+    process.exit(1);
+  }
+
   // wrap redis with helper functions
   const wRedis = ({
-    getAll: (id: number) => async () => redis.hGetAll(`${id}`),
-    getAllKeys: async () => redis.keys('*'),
-    get: (id: number) => async (property: string) => await redis.hGet(`${id}`, property),
-    set: (id: number) => (property: string) => async (new_value: string) => await redis.hSet(`${id}`, property, new_value)
+    getAll: (id: number) => async () => redis.hGetAll(`${RedisDataBaseName}_${id}`),
+    getAllKeys: async () => redis.keys(`${RedisDataBaseName}_*`),
+    get: (id: number) => async (property: string) => await redis.hGet(`${RedisDataBaseName}_${id}`, property),
+    set: (id: number) => (property: string) => async (new_value: string) => await redis.hSet(`${RedisDataBaseName}_${id}`, property, new_value)
   })
 
   return [bot, wRedis, db] as const;

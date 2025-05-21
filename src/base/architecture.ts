@@ -67,7 +67,7 @@ export default async function arch() {
       }
     }
     else return next();
-    console.log('[@', user['username'], '], ', '( id:', id, ')', '( state:', user['state'], ')', user);
+    console.log(`[@${user['username']}], (id:`, id, `), (state: ${user['state']})`, user);
   });
 
   return [onTextMessage, bot, db, MongoDB] as const;

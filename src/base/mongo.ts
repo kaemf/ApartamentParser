@@ -1,6 +1,7 @@
 import { MongoClient } from "mongodb";
 
 export type Apartament = {
+    siteType: string;
     title: string;
     address: string;
     img: string;
@@ -28,39 +29,46 @@ export default function DataBase(mongodb: MongoClient){
             if (!ttlExists) {
                 await this.apartamentDB.createIndex(
                     { createdAt: 1 },
-                    { name: this.ttlIndexName, expireAfterSeconds: 604800 } // 7 days
+                    { name: this.ttlIndexName, expireAfterSeconds: 1209600 } // 14 days
                 );
-                console.log('✅ TTL-index created');
+                console.log('TTL-index created');
             } else {
-                console.log('ℹ️ TTL-index already exists');
+                console.log('TTL-index already exists');
             }
         }
 
         public async CheckDuplicate(data: Apartament[]): Promise<boolean[]> {
-            const result: boolean[] = [];
-            for (let i = 0; i < data.length; i++) {
-                const existing = await this.apartamentDB.findOne({
-                    title: data[i].title,
-                    address: data[i].address,
-                    rooms: data[i].rooms,
-                    area: data[i].area,
-                    price: data[i].price,
-                    available: data[i].available,
-                });
-    
-                if (existing) {
-                    result.push(true);
-                }
-                else{
-                    await this.apartamentDB.insertOne({
-                        ...data[i],
-                        createdAt: new Date()
+            try{
+                const result: boolean[] = [];
+                for (let i = 0; i < data.length; i++) {
+                    const existing = await this.apartamentDB.findOne({
+                        siteType: data[i].siteType,
+                        title: data[i].title,
+                        address: data[i].address,
+                        rooms: data[i].rooms,
+                        area: data[i].area,
+                        price: data[i].price,
+                        available: data[i].available,
                     });
-                    result.push(false);
+        
+                    if (existing) {
+                        result.push(true);
+                    }
+                    else{
+                        await this.apartamentDB.insertOne({
+                            ...data[i],
+                            createdAt: new Date()
+                        });
+                        result.push(false);
+                    }
                 }
+    
+                return result;
             }
-
-            return result;
+            catch(e){
+                console.log(e);
+                return [];
+            }
         }
     }
 
