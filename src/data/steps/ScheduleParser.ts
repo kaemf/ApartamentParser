@@ -67,7 +67,7 @@ async function sendWithRetry(ctx: Telegram, data: Apartament) {
 export default function Parser(ctx: Telegram, mongodb: any){
     let busy = false;
 
-    schedule.scheduleJob('*/5 * * * *', async () => {
+    schedule.scheduleJob('*/1 * * * *', async () => {
         if (busy) {
             console.log('Busy, waiting...');
             return;

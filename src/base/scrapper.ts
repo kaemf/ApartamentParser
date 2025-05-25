@@ -10,12 +10,32 @@ function CheckMiete(input: string | null): boolean {
 
 export default async function Scrapper(): Promise<Apartament[] | undefined> {
     try{
+        const start_time: Date = new Date();
         console.log('Scrapping started...');
     
-        const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+        const browser = await puppeteer.launch({ headless: true, args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas', 
+            '--disable-gpu',
+            '--single-process'
+        ], });
         let page = await browser.newPage();
+
+        await page.setRequestInterception(true);
+
+        page.on('request', (req) => {
+            const resourceType = req.resourceType();
+            if (resourceType === 'image' || resourceType === 'stylesheet' || resourceType === 'font') {
+                req.abort();
+            } else {
+                req.continue();
+            }
+        });
     
         const results = [];
+        const emptyResults = [];
     
         for (let site of ["saga", "immowelt"]) {
             if (site === 'saga') {
@@ -84,6 +104,19 @@ export default async function Scrapper(): Promise<Apartament[] | undefined> {
                         link: fullDetailLink,
                         expose: exposeLink ?? 'https://www.saga.hamburg/not_found',
                     });
+
+                    emptyResults.push({
+                        siteType: site,
+                        title: listing.title,
+                        address: listing.address,
+                        rooms: listing.rooms,
+                        img: listing.img,
+                        area: listing.area,
+                        price: listing.price,
+                        available: listing.available,
+                        link: fullDetailLink,
+                        expose: exposeLink ?? 'https://www.saga.hamburg/not_found',
+                    })
                 }
             }
             else if (site === 'immowelt') {
@@ -193,6 +226,19 @@ export default async function Scrapper(): Promise<Apartament[] | undefined> {
                 
                         await detailPage.close();
 
+                        emptyResults.push({
+                            siteType: site,
+                            title: listing.title,
+                            address: listing.address,
+                            rooms: listing.rooms,
+                            img: listing.img,
+                            area: listing.area,
+                            price: listing.price,
+                            available: listing.available,
+                            link: listing.link,
+                            expose: ''
+                        })
+
                         if (CheckMiete(typeOfSell)) {
                             results.push({
                                 siteType: site,
@@ -215,7 +261,9 @@ export default async function Scrapper(): Promise<Apartament[] | undefined> {
     
         await browser.close();
 
-        console.log(`Done, found ${results.length} results`);
+        console.log(results);
+
+        console.log(`Done, found ${results.length} results of ${emptyResults.length} in ${((Date.now() - start_time.getTime()) / 60000).toFixed(2)} seconds`);
     
         return results;
     }
